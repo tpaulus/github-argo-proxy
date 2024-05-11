@@ -1,7 +1,8 @@
 {
-	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
-	"extends": [
-		"config:recommended",
-		"github>tpaulus/renovate-config:auto-merge-gh-actions"
-	]
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "github>tpaulus/renovate-config:auto-merge-gh-actions",
+    "github>tpaulus/renovate-config:auto-merge-node-types"
+  ]
 }
