@@ -3,7 +3,13 @@ import * as node_crypto from "node:crypto";
 
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-		if (request.method !== "POST") return MethodNotAllowed(request);
+		return await Proxy.fetch(request, env, ctx)
+	}
+} satisfies ExportedHandler<Env>;
+
+export class Proxy {
+	static async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+		if (request.method !== "POST") return this.MethodNotAllowed(request);
 
 		const signatureHeader: string | null = request.headers.get("x-hub-signature-256");
 
@@ -15,7 +21,7 @@ export default {
 			);
 		}
 		
-		if (!await verifySignature(
+		if (!await this.verifySignature(
 			env.WEBHOOK_SECRET,
 			await request.clone().text(),
 			signatureHeader
@@ -39,26 +45,43 @@ export default {
 		)
 
 		// @ts-ignore
-		return fetch(upstreamRequest);
+		return this.forwardToUpstream(upstreamRequest);
 	}
-} satisfies ExportedHandler<Env>;
 
-function MethodNotAllowed(request: Request): Response {
-	return new Response(`Method ${request.method} not allowed.`, {
-		status: 405,
-		headers: {
-		Allow: "GET",
-		},
-	});
+	static async forwardToUpstream(request: Request): Promise<Response> {
+		// @ts-ignore
+		return fetch(request);
+	}
+
+	static MethodNotAllowed(request: Request): Response {
+		return new Response(`Method ${request.method} not allowed.`, {
+			status: 405,
+			headers: {
+			Allow: "GET",
+			},
+		});
+	}
+
+	static async verifySignature(secret: string, payload: string, header: string) {
+		try {
+			const signature = node_crypto
+				.createHmac("sha256", secret)
+				.update(payload)
+				.digest("hex");
+			let trusted = Buffer.from(`sha256=${signature}`, 'ascii');
+
+			let untrusted = Buffer.from(header, 'ascii');
+			console.log(`Signature Verification Failed - Expected: '${trusted}', but got: '${untrusted}'`)
+
+			if (crypto.subtle.timingSafeEqual(trusted, untrusted)) {
+				return true;
+			} else {
+				console.log(`Signature Verification Failed - Expected: '${trusted}', but got: '${untrusted}'`)
+				return false;
+			}
+		} catch (e) {
+			console.log(e)
+			return false;
+		}
+	}
 }
-
-async function verifySignature(secret: string, payload: string, header: string) {
-	const signature = node_crypto
-		.createHmac("sha256", secret)
-		.update(payload)
-		.digest("hex");
-	let trusted = Buffer.from(`sha256=${signature}`, 'ascii');
-
-	let untrusted = Buffer.from(header, 'ascii');
-	return crypto.subtle.timingSafeEqual(trusted, untrusted);
-};
