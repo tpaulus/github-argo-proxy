@@ -1,0 +1,20 @@
+name: Deploy
+
+on:
+    workflow_run:
+        workflows: ["Node.js CI"]
+        branches: [main]
+        types:
+        - completed
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    name: Deploy
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
