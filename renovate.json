@@ -4,5 +4,14 @@
     "config:recommended",
     "github>tpaulus/renovate-config:auto-merge-gh-actions",
     "github>tpaulus/renovate-config:auto-merge-node-types"
+  ],
+	"packageRules": [
+    {
+      "packageNames": ["@cloudflare/vitest-pool-workers", "wrangler"],
+      "automerge": true,
+      "stabilityDays": 2,
+      "platformAutomerge": true,
+      "automergeType": "branch"
+    }
   ]
 }
