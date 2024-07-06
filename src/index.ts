@@ -33,14 +33,17 @@ export class Proxy {
 			);
 		}
 
+		const headers = new Headers(request.headers);
+        headers.set("CF-Access-Client-Id", env.ACCESS_CLIENT_ID);
+        headers.set("CF-Access-Client-Secret", env.ACCESS_CLIENT_SECRET);
+
+
 		const upstreamRequest = new Request(
 			env.ARGO_URL,
 			new Request(request, {
-				headers: {
-					...request.headers.entries(),
-					"CF-Access-Client-Id": env.ACCESS_CLIENT_ID,
-					"CF-Access-Client-Secret": env.ACCESS_CLIENT_SECRET,
-				}
+				method: request.method,
+				headers: headers,
+				body: request.body
 			})
 		)
 
