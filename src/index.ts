@@ -37,7 +37,7 @@ export class Proxy {
 			env.ARGO_URL,
 			new Request(request, {
 				headers: {
-					...request.headers,
+					...request.headers.entries(),
 					"CF-Access-Client-Id": env.ACCESS_CLIENT_ID,
 					"CF-Access-Client-Secret": env.ACCESS_CLIENT_SECRET,
 				}
