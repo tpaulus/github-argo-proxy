@@ -13,8 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Deploy
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4
       - name: Deploy
-        uses: cloudflare/wrangler-action@168bc28b7078db16f6f1ecc26477fc2248592143 # v3
+        uses: cloudflare/wrangler-action@9681c2997648301493e78cacbfb790a9f19c833f # v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
