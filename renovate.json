@@ -5,11 +5,11 @@
     "github>tpaulus/renovate-config:auto-merge-gh-actions",
     "github>tpaulus/renovate-config:auto-merge-node-types"
   ],
-	"packageRules": [
+  "packageRules": [
     {
-      "packageNames": ["@cloudflare/vitest-pool-workers", "wrangler"],
+      "matchPackageNames": ["@cloudflare/vitest-pool-workers", "wrangler"],
       "automerge": true,
-      "stabilityDays": 2,
+      "minimumReleaseAge": "2 days",
       "platformAutomerge": true,
       "automergeType": "branch"
     }
