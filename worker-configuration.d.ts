@@ -5,6 +5,7 @@ interface Env {
 	ARGO_URL: string;
     ACCESS_CLIENT_ID: string;
 
-    WEBHOOK_SECRET: string;
+    WEBHOOK_SECRET?: string;
+    WEBHOOK_SECRETS?: string;
     ACCESS_CLIENT_SECRET: string;
 }

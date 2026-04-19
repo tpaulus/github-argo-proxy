@@ -1,12 +1,24 @@
 // test/index.spec.ts
 import { env, createExecutionContext, waitOnExecutionContext, SELF } from 'cloudflare:test';
 import { vi, describe, test, expect, beforeEach, afterEach } from 'vitest';
+import * as node_crypto from "node:crypto";
 import worker from '../src/index';
 import { Proxy } from '../src/index';
 
 // For now, you'll need to do something like this to get a correctly-typed
 // `Request` to pass to `worker.fetch()`.
 const IncomingRequest = Request<unknown, IncomingRequestCfProperties>;
+
+function createSignature(secret: string, payload: string): string {
+	return `sha256=${node_crypto.createHmac("sha256", secret).update(payload).digest("hex")}`;
+}
+
+function createTestEnv(overrides: Partial<Env> = {}): Env {
+	return {
+		...env,
+		...overrides,
+	};
+}
 
 describe('Basic Request Validation', () => {
 	test.each([
@@ -123,5 +135,95 @@ describe('Credential Injection', () => {
 		await waitOnExecutionContext(ctx);
 
 		expect(response.status).toEqual(200)
+	})
+});
+
+describe('Repository-specific webhook secrets', () => {
+	beforeEach(async () => {
+		vi.spyOn(Proxy, 'forwardToUpstream').mockReturnValue(Promise.resolve(new Response(null, {
+			status: 204
+		})))
+	})
+
+	afterEach(async () => {
+		vi.restoreAllMocks()
+	})
+
+	test("Uses the repo-specific secret when configured", async () => {
+		const payload = JSON.stringify({
+			repository: {
+				full_name: "octo-org/argo-app"
+			}
+		});
+		const request = new IncomingRequest('http://example.com', {
+			method: "POST",
+			headers: {
+				"x-hub-signature-256": createSignature("repo-secret", payload),
+			},
+			body: payload
+		});
+
+		const ctx = createExecutionContext();
+		const response = await Proxy.fetch(request, createTestEnv({
+			WEBHOOK_SECRET: "default-secret",
+			WEBHOOK_SECRETS: JSON.stringify({
+				"octo-org/argo-app": "repo-secret"
+			})
+		}), ctx);
+		await waitOnExecutionContext(ctx);
+
+		expect(response.status).toEqual(204)
+	})
+
+	test("Falls back to the default secret when the repo is not configured", async () => {
+		const payload = JSON.stringify({
+			repository: {
+				full_name: "octo-org/unknown-app"
+			}
+		});
+		const request = new IncomingRequest('http://example.com', {
+			method: "POST",
+			headers: {
+				"x-hub-signature-256": createSignature("default-secret", payload),
+			},
+			body: payload
+		});
+
+		const ctx = createExecutionContext();
+		const response = await Proxy.fetch(request, createTestEnv({
+			WEBHOOK_SECRET: "default-secret",
+			WEBHOOK_SECRETS: JSON.stringify({
+				"octo-org/argo-app": "repo-secret"
+			})
+		}), ctx);
+		await waitOnExecutionContext(ctx);
+
+		expect(response.status).toEqual(204)
+	})
+
+	test("Rejects requests when only repo-specific secrets are configured and the repo is unknown", async () => {
+		const payload = JSON.stringify({
+			repository: {
+				full_name: "octo-org/unknown-app"
+			}
+		});
+		const request = new IncomingRequest('http://example.com', {
+			method: "POST",
+			headers: {
+				"x-hub-signature-256": createSignature("repo-secret", payload),
+			},
+			body: payload
+		});
+
+		const ctx = createExecutionContext();
+		const response = await Proxy.fetch(request, createTestEnv({
+			WEBHOOK_SECRET: undefined,
+			WEBHOOK_SECRETS: JSON.stringify({
+				"octo-org/argo-app": "repo-secret"
+			})
+		}), ctx);
+		await waitOnExecutionContext(ctx);
+
+		expect(response.status).toEqual(403)
 	})
 });
