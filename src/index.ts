@@ -72,10 +72,8 @@ export class Proxy {
 				.update(payload)
 				.digest("hex");
 			let trusted = Buffer.from(`sha256=${signature}`, 'ascii');
-
 			let untrusted = Buffer.from(header, 'ascii');
-			console.log(`Signature Verification Failed - Expected: '${trusted}', but got: '${untrusted}'`)
-
+			
 			if (crypto.subtle.timingSafeEqual(trusted, untrusted)) {
 				return true;
 			} else {
